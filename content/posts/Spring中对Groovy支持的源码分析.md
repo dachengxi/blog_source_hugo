@@ -1,0 +1,38 @@
+---
+title: Spring中对Groovy支持的源码分析
+date: 2020-08-26 20:32:49
+categories: Spring
+tags:
+- Spring
+
+---
+
+分析一下Spring中对Groovy使用的源码。
+
+<!--more-->
+
+Spring使用Groovy动态语言支持的时候，会使用到xml配置文件进行配置，如下所示：
+
+```xml
+<lang:groovy id = "processorFromClasspathFile" script-source = "classpath:groovy/ClasspathMessageProcessor.groovy"/>
+```
+
+这里是Spring的自定义标签的扩展机制，就是NamespaceHandler的处理机制。Spring遇到lang:groovy自定义标签，会查找对应的NamespaceHandler，这里是LangNamespaceHandler。
+
+LangNamespaceHandler会直接注册几个BeanDefinitionParser，用来将配置文件解析为BeanDefinition。这里注册的统一都是ScriptBeanDefinitionParser，对于groovy、bsh、std等差别就是使用了不同的ScriptFactory。
+
+注册完了BeanDefinitionParser之后，紧接着就开始了标签的解析工作，可以直接看到ScriptBeanDefinitionParser的parseInternal方法：
+
+- 解析script-source指定的Groovy文件或者是inline-script中指定的Groovy脚本内容
+- 注册ScriptFactoryPostProcessor，用来在Bean实例化的时候，使用Groovy脚本来实例化Bean
+- 根据xml中的配置，生成对应的GenericBeanDefinition
+
+这样解析完成后，Spring容器中就有了我们定义的相关脚本的BeanDefinition，接下来就是Bean的实例化和初始化过程。上面第二步注册了一个ScriptFactoryPostProcessor，继承了InstantiationAwareBeanPostProcessorAdapter，而Adapter这个类实现了SmartInstantiationAwareBeanPostProcessor接口，在Bean实例化的时候，会先调用predictBeanTye方法，该方法用来预测从此处理器的postProcessBeforeInstantiation方法最终返回的Bean的类型。
+
+ScriptFactoryPostProcessor在predictBeanType方法中会先根据配置生成对应的ScriptSource，inline的生成StaticScriptSource，其他的生成ResourceScriptSource，还可以自定义ScriptSource。ScriptSource按照字面意思理解就行，就是脚本的来源。
+
+获取完ScriptSource后，会调用GroovyScriptFactory的getScriptedObjectType方法，使用GroovyClassLoader来解析Groovy脚本，解析完后获取到脚本类型，就可以直接返回了。
+
+另外在postProcessBeforeInstantiation方法中，也会有和上面逻辑基本一致的代码，只不过最后增加了脚本自动刷新的逻辑。
+
+这样就把Groovy脚本解析，并变成了Spring的Bean，后面的使用就和普通Bean一样了。

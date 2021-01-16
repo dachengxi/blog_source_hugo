@@ -1,0 +1,63 @@
+---
+title: Spring的@Autowired注解实现机制
+date: 2019-05-26 13:48:02
+categories: Spring
+tags:
+- Spring
+---
+
+记录下Spring中@Autowired注解的实现原理。
+
+<!--more-->
+
+@Autowired注解使用的方式有如下几种：
+
+- setter方法
+- 构造方法
+- 成员变量
+- 普通方法
+
+注解的激活方式有使用`<annotation-config/>`或者`<component-scan/>`。这两个标签就是入口。
+
+@Autowired注解解析过程简单描述如下：
+
+- 遇到annotation-config标签的时候，使用ContextNamespaceHandler来注册一个对应的处理器：AnnotationConfigBeanDefinitionParser
+- AnnotationConfigBeanDefinitionParser中注册一堆的PostProcessor，其中包括：@Configuration、@Autowired、@Required、@Resource、@PostConstruct等等注解的PostProcessor
+- 这些PostProcessor会在不同的阶段被触发，用来处理对应的注解。@Autowired注解使用AutowiredAnnotationBeanPostProcessor来解析。
+
+当Spring解析配置文件为BeanDefinition的时候遇到annotation-config标签，会使用ContextNamespaceHandler来处理，这个Handler中注册了很多的BeanDefinitionParser。其中annotation-config对应的解析器是AnnotationConfigBeanDefinitionParser。
+
+AnnotationConfigBeanDefinitionParser中首先注册一些注解的处理器，这些处理器都是各种类型的BeanPostProcessor，这些BeanPostProcessor后面会各自处理不同的注解。其中Autowired注解处理器是：AutowiredAnnotationBeanPostProcessor。
+
+AutowiredAnnotationBeanPostProcessor实例化的时候，会先将Autowired、Value、Inject等注解一个Set中保存起来。AutowiredAnnotationBeanPostProcessor继承了InstantiationAwareBeanPostProcessorAdapter，会在实例化Bean的时候被调用，用来查找Bean的构造器，方法是：determineCandidateConstructors。
+
+determineCandidateConstructors方法中解析被@Autowired、@Inject、@Value注解的构造方法，并进行一些校验，完成后将这些注解的构造方法加入到构造器缓存中，最后返回构造器列表。如果没有任何注解在构造器上，默认的构造方法会被加入到缓存中，并且也会被返回。这一步进行的校验有：
+
+- 如有一个构造方法的@Autowired注解的required为true，则其他的构造方法不能再有@Autowired等注解
+- 如果构造方法是无参构造，则不能有@Autowired等注解
+
+经过这一步后，被@Autowired等注解的构造器都已经添加到缓存中了。这一步是在Bean实例化的时候调用的，调用完后就会进行Bean的实例化，Bean实例化之后，会调用MergedBeanDefinitionPostProcessor的方法。
+
+AnnotationConfigBeanDefinitionParser实现了MergedBeanDefinitionPostProcessor接口，这个接口在Bean实例化之后被调用，用来修改merged BeanDefinition的一些属性，或者可以缓存一些元数据信息以供后面流程中使用。实现的方法是：postProcessMergedBeanDefinition。该方法中主要逻辑是查找被Autowired等注解标注的元数据信息，也就是解析@Autowired注解的元数据信息缓存起来，后面使用。
+
+- 查找的范围有：当前类、父类、一直到Object类。
+- 类中查找的范围是：字段和方法
+
+对于字段和方法来说，都不能是静态的，如果是静态的并且标注了@Autowired注解，则跳过不处理。字段会被构造为AutowiredFieldElement对象、方法会被构造为AutowiredMethodElement对象，这两个对象会被添加到一个集合中并构造成InjectionMetadata对象，InjectionMetadata对象中包含了原始类和要注入的元信息。
+
+这一步解析完后，会将注入元数据信息放到缓存中缓存起来。
+
+继续往下之后，会继续进行Bean属性的填充，在Bean填充属性的时候，真正应用属性之前会调用InstantiationAwareBeanPostProcessor接口的postProcessPropertyValues方法，这里将会把上面解析的一些依赖注入到实际的位置上去，包括字段注入和方法注入。这两种注入过程都一样，首先找到之前解析的要注入的元数据信息，根据元数据信息分别进行方法或者字段注入：
+
+- 首先把要被注入的对象解析成容器中的Bean对象
+- 然后注册依赖Bean，也就是在容器中记录依赖和被依赖的关系
+- 最后通过反射将被依赖的对象注入到目标对象的字段或方法中去
+
+到这里@Autowired注解的整个过程就完成了，总结如下：
+
+- 遇到对应标签annotation-config，使用ContextNamespaceHandler注册对应注解的解析器
+- 注解解析器本身在实例化的时候会先将几个要用的注解缓存起来
+- 在具体的Bean实例化之前的时候，会先调用注解解析器的determineCandidateConstructors方法，用来解析构造方法，并把使用注解的构造方法缓存起来，这一步把注解的构造方法先解析出来了
+- 接下来是Bean实例化，实例化后会调用postProcessMergedBeanDefinition方法用来提取Bean中的被注解的需要自动注入的字段或者方法的元数据，需要被注入的元数据提取完后缓存起来
+- 接下来是填充Bean的属性，在这一步中，在应用属性之前会调用postProcessPropertyValues方法将上面解析的被依赖的元数据，注入到实际的位置上去，使用反射进行注入，之后就是继续Bean填充属性的后续流程了
+

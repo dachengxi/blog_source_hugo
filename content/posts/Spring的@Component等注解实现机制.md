@@ -1,0 +1,23 @@
+---
+title: Spring的@Component等注解实现机制
+date: 2019-05-27 21:39:15
+categories: Spring
+tags:
+- Spring
+---
+
+记录下Spring中@Component注解的实现原理，@Controller、@Repository、@Service等注解都是@Component注解，都是一样的。
+
+<!--more-->
+
+@Component等注解其实是和xml配置文件中的`<bean>`标签一样的作用，使用的时候需要在xml配置文件中通过`<context:component-scan>`来启用对注解的扫描。Spring容器启动的时候遇到这个标签，会在ContextNamespaceHandler中注册ComponentScanBeanDefinitionParser解析器。
+
+ComponentScanBeanDefinitionParser解析器中的parse方法会将标注了@Component等注解的类都扫描进容器中，注册成BeanDefinition，以供后面流程使用。
+
+首先会解析componen-scan标签中的base-package属性，然后创建一个ClassPathBeanDefinitionScanner对象，用来扫描base-package中指定路径下的类，将有标注@Component等注解的类注册成BeanDefinition，最后将所有扫描到的BeanDefinition聚合到CompositeComponentDefinition中，并判断是否有使用annotation-config属性，如果为true需要注册Configuration、Antowired、Required等注解处理器进容器。
+
+在创建ClassPathBeanDefinitionScanner对象的时候，会解析use-default-filters、resource-pattern、include-filter和exclude-filter等属性，并将其设置到ClassPathBeanDefinitionScanner对象中。在构造ClassPathBeanDefinitionScanner对象的时候还有个重要的点，会将Component、ManagedBea、Named等注解添加到到includeFilters中去，这在后面扫描的class的时候会当做过滤条件。
+
+ClassPathBeanDefinitionScanner扫描的时候，先根据指定的base-package路径，将该路径下所有的class文件都读取到内存中，遍历每一个class文件使用ASM读取类的元数据信息，根据元数据信息判断是不是需要的类，如果是的话就封装成ScannedGenericBeanDefinition对象。找到候选Bean定义后，遍历每个Bean定义，生成名称、处理@Primary等注解，最后封装成BeanDefinitionHolder，并将其注册到容器中去，其实就是放到容器中的一个BeanDefinition的map中去。
+
+扫描完后，会把所有扫描到的组件聚合到一个名为context-component-scan的CompositeComponentDefinition对象中，并触发组件注册事件。同时还会看是否有annotation-config属性，如果为true的话需要注册Configuration、Antowired、Required等注解处理器进容器。
