@@ -1,18 +1,51 @@
 ---
-title: ArrayList简介
+title: Java基础之ArrayList简介
 date: 2016-05-20 16:47:46
 categories: Java基础
-tags:
-- arrayList
 ---
+借着ArrayList的学习，重温一下数据结构中的表（线性表）的相关知识，并从数据结构的基础知识开始，一点点进入ArrayList的学习。
+
+<!--more-->
+
+# 数据结构中的线性表介绍
+
+数据结构中最基本的数据结构：表（List）、栈（Stack）、队列（Queue），这些定义和实现如果能够充分掌握好，学习Java中的对应实现问题就不会很多。
+
+## 线性表的定义
+
+线性表，从名字中就能看出来其含义，说的是组成表的元素之间具有线性关系。它是由有限个类型相同的元素组成的序列。
+
+## 线性表的分类
+
+线性表的实现可以分为两种：
+
+- 顺序表类
+- 链表类
+
+### 线性表的顺序存储结构
+
+线性表的顺序存储结构（我们第一个想到的可能就是数组），用一组连续的内存单元依次存放数据元素。
+
+## 线性表的操作
+
+线性表基本操作一般有：
+
+- 插入
+- 删除
+- 查找
+- 替换
+
+也不难理解，我们可以把一个线性表比作是数据库表，用来存储一些数据在里面，对表的操作就是增删改查。
+
 # ArrayList简介
+
 ArrayList实现了List接口，内部以数组存储数据，允许重复的值。由于内部是数组实现，所以ArrayList具有数组所有的特性，通过索引支持随机访问，查询速度快，但是插入和删除的效率比较低。
 
 ArrayList默认初始容量为10，每次添加新元素时都会检查是否需要扩容操作。扩容操作需要重新拷贝数组，比较耗时，所以如果预先能知道数组的大小，在初始化时候可以指定一个初始容量。
 
 ArrayList不是线程安全的，使用时应注意。
 
-<!--more-->
+
 
 # 源码分析
 >jdk1.7.0_71
@@ -280,11 +313,14 @@ public Iterator<E> iterator() {}
 ```
 public List<E> subList(int fromIndex, int toIndex) {}
 ```
-	
-[http://blog.csdn.net/crave_shy/article/details/17436773](http://blog.csdn.net/crave_shy/article/details/17436773)
 
-[http://www.importnew.com/19233.html](http://www.importnew.com/19233.html)
+# 参考内容
 
-[https://www.zybuluo.com/pastqing/note/200073](https://www.zybuluo.com/pastqing/note/200073)
+- 《数据结构（Java版）》
+- [http://blog.csdn.net/crave_shy/article/details/17436773](http://blog.csdn.net/crave_shy/article/details/17436773)
 
-[http://www.cnblogs.com/sipher/articles/2429812.html](http://www.cnblogs.com/sipher/articles/2429812.html)
+- [http://www.importnew.com/19233.html](http://www.importnew.com/19233.html)
+
+- [https://www.zybuluo.com/pastqing/note/200073](https://www.zybuluo.com/pastqing/note/200073)
+
+- [http://www.cnblogs.com/sipher/articles/2429812.html](http://www.cnblogs.com/sipher/articles/2429812.html)
