@@ -1,67 +1,121 @@
 ---
-title: Java基础之Mutex介绍
-date: 2017-03-23 16:25:44
+title: Java基础之Semaphore介绍
+date: 2017-03-23 19:41:32
 categories: 
 - Java基础
 ---
-为了更好的学习Java中的AQS，先回顾下基础知识mutex互斥锁。
+为了更好的学习Java中的AQS，先回顾下基础知识semaphore信号量。
 
 <!--more-->
 
-# 互斥锁的定义
+# 定义
 
-在多线程编程中，为了防止多个线程同时对临界区代码进行访问，操作系统引入了互斥锁。对于临界区代码的访问，同一时刻只能有一个线程进行。
+Semaphore信号量，是比互斥锁功能更高级的一个工具，用于提供不同进程或者线程间的同步功能的原语。
 
-# 互斥锁的实现原理
+# 实现原理
 
-互斥锁可以理解为是一个整形变量和两个操作（加锁和解锁）构成的锁。
+Semaphore实现和Mutex类似，使用一个整形变量和两个原子操作（p、v操作）来实现，Semaphore的p、v操作可以由两个不同的线程进行操作，而Mutex的加锁和解锁操作必须由同一个线程进行。
 
-互斥锁只有两个状态：
+## p操作的实现
 
-- 未加锁状态
-- 加锁状态
+当Semaphore的值小于等于0的时候，自旋等待；当值大于0的时候将值减1，p操作执行结束。
 
-互斥锁加锁的实现逻辑：先判断锁的状态，如果是未加锁状态，则将锁改为加锁状态，并返回成功；如果是已加锁状态，则挂起等待。
+## v操作的实现
 
-互斥锁解锁的实现逻辑：直接将锁改为未加锁状态，并唤醒那些挂起等待的的线程。
+直接将信号量值加1即可
 
-# 互斥锁的底层支持
+## 代码示例
 
-在互斥锁的加锁和解锁实现逻辑中可以看到，加锁和解锁过程中是有多个步骤的，这需要操作系统保证互斥锁操作的原子性。
+Semaphore伪代码如下：
 
-CPU提供的支持有：
+```java
+Semaphore {
+  int semaphore;
+  
+  p() {
+    while (semaphore <= 0) {
+      ;
+    }
+    
+    semaphore--;
+  }
+  
+  v() {
+    semaphore++；
+  }
+}
+```
 
-- 提供原子操作（Test And Set）
-- 关闭中断
-- 锁内存总线
+信号量的p、v操作都是原子操作。
 
-操作系统利用CPU提供的支持，就可以实现互斥锁。
+# 信号量的类型
 
-# 互斥锁的使用
+Semaphore有两种类型：
 
-互斥锁的加锁和解锁只能由同一个线程进行操作。
+- 二进制信号量
+- 计数信号量
 
-# Mutex和优先级反转问题
+## 二进制信号量
 
-优先级反转是指：一个低优先级的任务持有一个共享资源，一个高优先的任务也需要持有该共享资源，但此时共享资源被低优先级的任务持有，故高优先级的任务需要阻塞等待低优先级的任务释放资源，而在这个过程中，有一个中优先级的任务（这个任务不需要持有该共享资源）到来，抢占了CPU时间，这样就导致中优先级的任务先执行了，甚至可能会导致高优先级的任务无法执行。
+二进制信号量的值只有0和1，功能和mutex类似。
 
-解决优先级反转的方案有：
+## 计数信号量
 
-- 优先级继承，当一个低优先级的任务持有资源，此时高优先级任务等待低优先级任务完成时，将低优先级任务的优先级调整为高优先级任务的优先级，等低优先级任务释放共享资源后，再回到原来的优先级。
-- 设置优先级上线，给访问共享资源的任务一个高优先级。
-- 禁止中断
+计数信号量的值是一个大于等于0的值，用来表示可用资源的个数，允许多个线程同时使用资源。
 
-实时操作系统上，如果需要互斥保护，进行使用mutex，而不是semaphore，因为semaphore一般没有优先级继承，会导致优先级反转。
+# 信号量的另外一种实现
 
-# 参考
+上面说的信号量使用自旋来等待资源可用，这样会浪费CPU时间，可以使用另外一种方式来实现信号量：使用一个整形变量、一个同步队列和两个原子操作（p、v操作）来实现。
 
-- [https://blog.csdn.net/Onlyonefate/article/details/52183908?utm_medium=distribute.pc_relevant.none-task-blog-baidujs_title-0&spm=1001.2101.3001.4242](https://blog.csdn.net/Onlyonefate/article/details/52183908?utm_medium=distribute.pc_relevant.none-task-blog-baidujs_title-0&spm=1001.2101.3001.4242)
-- [https://zh.wikipedia.org/wiki/%E4%BA%92%E6%96%A5%E9%94%81](https://zh.wikipedia.org/wiki/%E4%BA%92%E6%96%A5%E9%94%81)
-- [https://zhuanlan.zhihu.com/p/146132061](https://zhuanlan.zhihu.com/p/146132061)
-- [https://developer.aliyun.com/article/449687](https://developer.aliyun.com/article/449687)
-- [https://blog.csdn.net/iteye_21199/article/details/82474836](https://blog.csdn.net/iteye_21199/article/details/82474836)
-- [https://www.cnblogs.com/sky-heaven/p/5016222.html](https://www.cnblogs.com/sky-heaven/p/5016222.html)
+## p操作的实现
 
+先将值减1，判断如果值小于0，则将当前线程加入同步队列，并将当前线程进行阻塞；如果值大于等于0，则p操作结束。
 
+## v操作的实现
 
+先将值加1，判断如果值小于等于0，说明同步队列中有线程，从同步队列中取出一个线程并唤醒；如果值大于0，v操作直接结束。
 
+## 代码示例
+
+伪代码实现如下：
+
+```java
+Semaphore {
+  int semaphore;
+  WaitQueue waitQueue;
+  
+  p() {
+    semaphore--;
+    if (semaphore < 0) {
+      // 将当前线程(currentThread)加入队列
+      waitQueue.add(currentThread);
+      
+      // 阻塞当前线程
+      block(currentThread);
+    }
+  }
+  
+  v() {
+    semaphore++;
+    if (semaphore <= 0) {
+      // 从队列中移除一个线程thread
+      waitQueue.remove(thread);
+      
+      // 唤醒线程
+      wakeup(thread);
+    }
+  }
+}
+```
+
+# 信号量的使用
+
+可以使用信号量实现如下功能：
+
+- 使用二进制信号量实现互斥锁，但是有一点重要的区别是互斥锁mutex可以避免进程优先级反转问题。
+- 使用信号量实现条件同步，两个线程间需要使用同一个信号量，两个线程分别进行p操作和v操作。
+- 使用信号量可以解决生产者消费者问题，需要使用到三个信号量：一个作为互斥锁，两个作为条件变量。
+
+# 缺点
+
+信号量使用起来比较繁琐，容易出错，可以使用更好地管程来解决信号量这些问题。
