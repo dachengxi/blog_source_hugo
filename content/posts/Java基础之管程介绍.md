@@ -18,6 +18,7 @@ categories:
 - 条件变量和对应的等待队列
 - 同步队列
 - 条件变量可执行的await方法和signal/signalAll方法
+- 加锁和解锁操作
 
 # 管程模型
 
