@@ -35,13 +35,15 @@ $p_j$对应的k的取值是：$p_j$前面的串（$p_0...p_{j-1}$）所包含的
 
 next数组定义next[j]：
 $$
-next[j]=
-\left\{\begin{matrix}
+next[j] = 
+\begin{cases}
 -1 & 当j=0时
- \\
- k & 当0<=k<j时且使"p_0...p_{k-1}"="p_{j-k...p_{j-1}}"的最大整数
-\end{matrix}\right.
+\\
+k & 当0<=k<j时且使"p_0...p_{k-1}"="p_{j-k...p_{j-1}}"的最大整数
+\end{cases}
 $$
+
+
 求next[j]数组，也就是求j前面的串中最长的相同前缀和后缀子串的长度。求出了next[j]之后，也可以利用已经得到的结果来求next[j+1]。
 
 1. 约定next[0]=-1，有next[1]=0
