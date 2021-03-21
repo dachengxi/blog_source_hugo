@@ -37,8 +37,7 @@ next数组定义next[j]：
 $$
 next[j] = 
 \begin{cases}
--1 & 当j=0时
-\\
+-1 & 当j=0时 \\
 k & 当0<=k<j时且使"p_0...p_{k-1}"="p_{j-k...p_{j-1}}"的最大整数
 \end{cases}
 $$
