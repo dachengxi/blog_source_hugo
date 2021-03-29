@@ -89,4 +89,10 @@ Cell元素是经过内存对齐的，每个Cell可以独占一个缓存行，这
 
 # 源码分析
 
-参照源码解析：[https://github.com/dachengxi/Java8u192SourceCode](
+参照源码解析：[https://github.com/dachengxi/Java8u192SourceCode](https://github.com/dachengxi/Java8u192SourceCode)
+
+# 参考
+
+- [https://my.oschina.net/qq785482254/blog/4307177](https://my.oschina.net/qq785482254/blog/4307177)
+- [https://segmentfault.com/a/1190000024528036](https://segmentfault.com/a/1190000024528036)
+
