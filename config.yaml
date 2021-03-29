@@ -11,7 +11,7 @@ languages:
 hasCJKLanguage: true
 # 若为 false，`Getting Started` 这样的英文标签将会被转换为 `getting-started`
 preserveTaxonomyNames: true
-title: "Time Stream"
+title: "大程熙"
 # 设置使用的主题名称 (默认储存在 /themes/THEMENAME/)
 theme: "smol"
 # 分页 
