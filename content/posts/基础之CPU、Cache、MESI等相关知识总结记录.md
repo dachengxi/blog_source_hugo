@@ -163,7 +163,28 @@ MESI协议和总线事务能够保证高速缓存的一致性，但是却会有�
 
 ## Write Barrier 写屏障
 
+CPU遇到写屏障时，必须强制等待存储缓存中的写事务全部处理完后，才能继续执行屏障后的写操作，也就是写屏障后面的写操作不能重排到写屏障之前。
 
+## Read Barrier 读屏障
+
+CPU遇到读屏障时，必须先将失效队列中的写事务全部处理完，才能继续执行读屏障后的读操作，也就是读屏障后的读操作不能重排到读屏障之前。
+
+## 读写屏障
+
+读写屏障是读屏障和写屏障合并一起的屏障，不准屏障后面的任何读写操作被重排到屏障之前。
+
+# 伪共享
+
+多个线程修改相互独立的变量，如果这些独立的变量共享同一个缓存行，就会导致伪共享发生。
+
+解决伪共享的方法：
+
+- 在两个变量之前填充一些变量，使得变量不再共享同一个缓存行。
+- Java中使用`@Contended`注解进行填充。
+
+在Java源码中有很多地方都使用到了填充来防止伪共享的发生：
+
+- ConcurrentHashMap中的CounterCell使用`@Contended`注解来防止伪共享
 
 # 参考
 
@@ -175,4 +196,5 @@ MESI协议和总线事务能够保证高速缓存的一致性，但是却会有�
 - [https://www.0xffffff.org/2017/02/21/40-atomic-variable-mutex-and-memory-barrier/](https://www.0xffffff.org/2017/02/21/40-atomic-variable-mutex-and-memory-barrier/)
 - [https://www.cnblogs.com/xiaoxiongcanguan/p/13184801.html](https://www.cnblogs.com/xiaoxiongcanguan/p/13184801.html)
 - [http://www.wowotech.net/kernel_synchronization/Why-Memory-Barriers.html](http://www.wowotech.net/kernel_synchronization/Why-Memory-Barriers.html)
+- [https://monkeysayhi.github.io/2017/12/28/%E4%B8%80%E6%96%87%E8%A7%A3%E5%86%B3%E5%86%85%E5%AD%98%E5%B1%8F%E9%9A%9C/](https://monkeysayhi.github.io/2017/12/28/%E4%B8%80%E6%96%87%E8%A7%A3%E5%86%B3%E5%86%85%E5%AD%98%E5%B1%8F%E9%9A%9C/)
 
