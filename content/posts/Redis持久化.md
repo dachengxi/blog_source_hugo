@@ -2,9 +2,7 @@
 title: Redis持久化
 date: 2019-04-02 20:01:00
 categories: 
-- 缓存
-tags:
-- redis
+- Redis
 ---
 
 Redis可以将内存中的数据库状态持久化到磁盘中去，提供了两种持久化方法：RDB持久化和AOF持久化。
@@ -12,6 +10,8 @@ Redis可以将内存中的数据库状态持久化到磁盘中去，提供了两
 <!--more-->
 
 # RDB持久化
+
+RDB持久化功能既可以手动执行，也可以根据服务器配置定期执行，会将某个时间点上的数据库状态保存到一个RDB文件中。
 
 ## RDB创建和加载
 
@@ -22,9 +22,7 @@ RDB文件创建有两个命令：SAVE和BGSAVE
 
 RDB文件恢复是在服务器启动的时候自动执行的，只要Redis服务器启动时检测到RDB文件存在，就自动载入RDB文件，RDB载入期间，服务器会一直处于阻塞，直到载入完成才能提供服务。
 
-由于AOF文件更新频率会比RDB文件更新频率高，所以：
-
-- 如果开启了AOF，则优先使用AOF来还原数据库状态。
+- 如果开启了AOF，则优先使用AOF来还原数据库状态，因为AOF文件更新频率比RDB文件更新频率高。
 - 如果AOF未开启，则使用RDB来还原数据库状态。
 
 另外，SAVE、BGSAVE、BGREWRITEAOF三个命令之间也会有一些互斥的关系：
@@ -34,14 +32,41 @@ RDB文件恢复是在服务器启动的时候自动执行的，只要Redis服务
 - BGSAVE运行期间，BGREWRITEAOF命令会被延迟到BGSAVE命令执行完毕。
 - BGREWRITEAOF执行期间，BGSAVE命令会被拒绝。
 
-## dirty计数器和lastsave属性
+## RDB自动保存的时机
 
-Redis服务器维持着一个dirty计数器和leastsave属性：
+Redis允许配置save选项，让服务器每隔一段时间自动执行一次BGSAVE命令。配置的保存选项可以有多个，只要其中任一个条件满足，服务器就会执行BGSAVE命令。
+
+配置的选项存在redisServer结构的saveparams属性中，saveparams是一个数组，每一项是一个saveparam结构，表示一个配置的保存选项。
+
+```c
+struct redisServer {
+    // ...
+    // saveparams数组
+    struct saveparam *saveparams;
+    // ...
+    // 修改计数器
+    long long dirty;
+    // 上一次执行保存的时间
+    time_t lastsave;
+};
+
+struct saveparam {
+    // 秒数
+    time_t seconds;
+    // 修改次数
+    int changes;
+}
+```
+
+
+
+### dirty计数器和lastsave属性
+
+redisServer结构中还有一个dirty计数器和leastsave属性：
 
 ```c
 redisServer {
-  // 计数器，记录距离上一次成功执行SAVE或者BGSAVE命令后，服务器
-  // 对数据库进行了多少次修改
+  // 计数器，记录距离上一次成功执行SAVE或者BGSAVE命令后，服务器对数据库进行了多少次修改
   long long dirty;
   
   // 上一次执行SAVE命令或者BGSAVE命令的时间
@@ -49,31 +74,11 @@ redisServer {
 }
 ```
 
-Redis服务器会周期性的每隔100ms检查，如果条件满足了，就会执行BGSAVE命令。
+Redis的时间事件serverCron默认每隔100ms执行一次，其中就会检查保存选项是否满足，如果条件满足了，就会执行BGSAVE命令。
 
 ## RDB文件结构
 
-![RDB-1](/Redis持久化/RDB-1.png)
-
-- REDIS，用来快速检查载入的文件是否是RDB文件
-- db_verson，记录了RDB文件版本号。
-- SELECTDB，程序读入这个值的时候表示接下来要读取的是数据库号码。
-- db_number，图中的0和3表示0号数据库和3号数据库，空的数据库不会有。
-- pairs，key_value_pairs保存了数据库中所有键值对数据，如果带有过期时间也会和键值对保存在一起。
-- EOF，表示RDB文件正文结束。
-- check_sum，通过对前面部分计算得出的一个校验和，用来检查RDB是否出错或损坏。
-
-不带过期时间的键值对key_value_pairs：
-
-![RDB-2](RDB-2.png)
-
-带过期时间的键值对key_value_pairs：
-
-![RDB-3](RDB-3.png)
-
-- TYPE记录了value的类型。
-- EXPIRETIME_MS，表示接下来读入的是一个毫秒为单位的过期时间。
-- ms，毫秒为单位的UNIX时间戳，表示键值对的过期时间。
+结构可参考书上内容，暂不写。
 
 # AOF持久化
 
@@ -115,6 +120,11 @@ AOF持久化记录了被执行的写命令，AOF文件会越来越大，会对�
 
 1. 将AOF重写缓冲区所有内容写到新的AOF文件中，新的AOF文件和服务器当前数据库状态就保持一致了。
 2. 对新AOF文件改名，并原子的覆盖现有AOF文件，完成新旧文件的替换。
+
+# RDB和AOF对比
+
+- RDB持久化是保存数据库中键值对来记录数据库状态的不同
+- AOF持久化是通过保存服务器执行的写命令来记录数据库状态
 
 # 参考
 
