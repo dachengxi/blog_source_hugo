@@ -2,9 +2,7 @@
 title: Redis发布与订阅
 date: 2019-04-14 14:08:13
 categories: 
-- 缓存
-tags:
-- redis
+- Redis
 ---
 
 Redis支持发布订阅功能，SUBSCRIBE命令可以让客户端订阅一个或者多个频道，PSUBSCRIBE可以让客户端订阅一个或多个模式的，PUBLISH用来发布消息。

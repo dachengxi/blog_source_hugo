@@ -2,9 +2,7 @@
 title: Redis跳表
 date: 2019-04-19 22:20:37
 categories: 
-- 缓存
-tags:
-- redis
+- Redis
 
 ---
 
